@@ -33,11 +33,14 @@ class MobileVikings:
 
 	def call_history(self):
 		"""Get the call history from the logged in user"""
-		pass
+		res = MobileVikings.urlopen_with_auth(self.baseurl + 'call_history.xml', self.username, self.password)
+		xml = ElementTree.parse(res)
 
 	def top_up_history(self):
 		"""Get the top up history from the logged in user"""
-		pass
+		res = MobileVikings.urlopen_with_auth(self.baseurl + 'top_up_history.xml', self.username, self.password)
+		xml = ElementTree.parse(res)
+		topups = xml.findall('topup')
 
 def usage():
 	print "Usage: %s <username> <password>" % sys.argv[0]
