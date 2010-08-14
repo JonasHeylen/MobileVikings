@@ -81,9 +81,11 @@ class MobileVikings(object):
 				self.username, self.password)
 		xml = ElementTree.parse(res)
 		return [{
-				"timestamp": calldata.find("timestamp").text,
-				"start_timestamp": calldata.find("start_timestamp").text,
-				"end_timestamp": calldata.find("end_timestamp").text,
+				"timestamp": long(calldata.find("timestamp").text),
+				"start_timestamp": datetime.strptime(calldata.find("start_timestamp").text,
+					self.dateformat),
+				"end_timestamp": datetime.strptime(calldata.find("end_timestamp").text,
+					self.dateformat),
 				"duration": calldata.find("duration").text,
 				"duration_call": calldata.find("duration_call").text,
 				"duration_connection": calldata.find("duration_connection").text,
@@ -104,7 +106,7 @@ class MobileVikings(object):
 		res = MobileVikings.urlopen_with_auth(self.baseurl + "top_up_history.xml", self.username, self.password)
 		xml = ElementTree.parse(res)
 		return [{
-				"on": topup.find("on").text,
+				"on": datetime.strptime(topup.find("on").text, self.dateformat),
 				"id": topup.find("id").text,
 				"subscription_id": topup.find("subscription_id").text,
 				"amount": float(topup.find("amount").text),
