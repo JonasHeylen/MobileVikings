@@ -65,7 +65,9 @@ class MobileVikings(object):
 		xml = ElementTree.parse(res)
 		return {"credits": float(xml.find("credits").text),
 				"sms": int(xml.find("sms").text),
-				"data": int(xml.find("data").text)}
+				"data": int(xml.find("data").text),
+				"valid_until": datetime.strptime(xml.find("valid_until").text, self.dateformat),
+				"is_expired": xml.find("is_expired").text.lower() == "true"}
 
 	def call_history(self, from_date=None, until_date=None):
 		"""Get the call history from the logged in user"""
@@ -92,11 +94,11 @@ class MobileVikings(object):
 				"duration_human": calldata.find("duration_human").text,
 				"to": calldata.find("to").text,
 				"destination": calldata.find("destination").text,
-				"is_incoming": calldata.find("is_incoming").text == "True",
-				"is_voice": calldata.find("is_voice").text == "True",
-				"is_sms": calldata.find("is_sms").text == "True",
-				"is_mms": calldata.find("is_mms").text == "True",
-				"is_data": calldata.find("is_data").text == "True",
+				"is_incoming": calldata.find("is_incoming").text.lower() == "true",
+				"is_voice": calldata.find("is_voice").text.lower() == "true",
+				"is_sms": calldata.find("is_sms").text.lower() == "true",
+				"is_mms": calldata.find("is_mms").text.lower() == "true",
+				"is_data": calldata.find("is_data").text.lower() == "true",
 				"price": float(calldata.find("price").text),
 				"balance": float(calldata.find("balance").text)
 			} for calldata in xml.findall("dict")]
@@ -143,8 +145,9 @@ def main(argv):
 
 		balance = mv.sim_balance()
 		print("=== Balance ===")
-		print("Credits: %s EUR - SMS: %s - Data: %s MB\n" % (balance["credits"], balance["sms"],
-			balance["data"]/(1024*1024)))
+		print("Credits: %s EUR - SMS: %s - Data: %s MB - Valid until: %s\n"
+				% (balance["credits"], balance["sms"],
+			balance["data"]/(1024*1024), balance["valid_until"]))
 
 		twodaysago = datetime.now() - timedelta(days=2)
 		yesterday = datetime.now() - timedelta(days=1)
