@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2010 Jonas Heylen <jonas.heylen@gmail.com>
+# Copyright (c) 2010-2011 Jonas Heylen <jonas.heylen@gmail.com>
 #
 # All rights reserved.
 #
@@ -32,146 +32,151 @@ from urllib2 import *
 from xml.etree import ElementTree
 
 class MobileVikings(object):
-	"""Mobile Vikings API for Python"""
+    """Mobile Vikings API for Python"""
 
-	baseurl	= "https://mobilevikings.com/api/1.0/rest/mobilevikings/"
-	dateformat = "%Y-%m-%dT%H:%M:%S"
+    baseurl    = "https://mobilevikings.com/api/1.0/rest/mobilevikings/"
+    dateformat = "%Y-%m-%dT%H:%M:%S"
+    dateformat_topup = "%Y-%m-%dT%H:%M:%S.%f"
 
-	def __init__(self, username, password):
-		"""Initialize the Mobile Vikings API with a username and password"""
-		self.username = username
-		self.password = password
+    def __init__(self, username, password):
+        """Initialize the Mobile Vikings API with a username and password"""
+        self.username = username
+        self.password = password
 
-	@staticmethod
-	def urlopen_with_auth(url, username, password):
-		"""Helper function to use urllib2.urlopen with HTTP basic authentication"""
-		password_manager = HTTPPasswordMgrWithDefaultRealm()
-		password_manager.add_password(None, url, username, password)
-		handler = HTTPBasicAuthHandler(password_manager)
-		opener = build_opener(handler)
-		try:
-			return opener.open(url)
-		except HTTPError as e:
-			if e.code == 401:
-				raise AuthenticationException(e)
-			else:
-				raise NetworkException(e)
-		except URLError as e:
-			raise NetworkException(e)
+    @staticmethod
+    def urlopen_with_auth(url, username, password):
+        """Helper function to use urllib2.urlopen with HTTP basic authentication"""
+        password_manager = HTTPPasswordMgrWithDefaultRealm()
+        password_manager.add_password(None, url, username, password)
+        handler = HTTPBasicAuthHandler(password_manager)
+        opener = build_opener(handler)
+        try:
+            return opener.open(url)
+        except HTTPError as e:
+            if e.code == 401:
+                raise AuthenticationException(e)
+            else:
+                raise NetworkException(e)
+        except URLError as e:
+            raise NetworkException(e)
 
-	def sim_balance(self):
-		"""Get the current SIM balance for the logged in user"""
-		res = MobileVikings.urlopen_with_auth(self.baseurl + "sim_balance.xml", self.username, self.password)
-		xml = ElementTree.parse(res)
-		return {"credits": float(xml.find("credits").text),
-				"sms": int(xml.find("sms").text),
-				"data": int(xml.find("data").text),
-				"valid_until": datetime.strptime(xml.find("valid_until").text, self.dateformat),
-				"is_expired": xml.find("is_expired").text.lower() == "true"}
+    def sim_balance(self):
+        """Get the current SIM balance for the logged in user"""
+        res = MobileVikings.urlopen_with_auth(self.baseurl + "sim_balance.xml", self.username, self.password)
+        xml = ElementTree.parse(res)
+        return {"credits": float(xml.find("credits").text),
+                "sms": int(xml.find("sms").text),
+                "sms_mv": int(xml.find("sms_super_on_net").text),
+                "data": int(xml.find("data").text),
+                "valid_until": datetime.strptime(xml.find("valid_until").text,
+                    self.dateformat_topup),
+                "is_expired": xml.find("is_expired").text.lower() == "true"}
 
-	def call_history(self, from_date=None, until_date=None):
-		"""Get the call history from the logged in user"""
-		
-		if from_date is None:
-			from_date = datetime.now() - timedelta(weeks=1)
-		args = "?from_date=" + from_date.strftime(self.dateformat)
+    def call_history(self, from_date=None, until_date=None):
+        """Get the call history from the logged in user"""
+        
+        if from_date is None:
+            from_date = datetime.now() - timedelta(weeks=1)
+        args = "?from_date=" + from_date.strftime(self.dateformat)
 
-		if until_date is not None:
-			args += "&until_date=" + until_date.strftime(self.dateformat)
+        if until_date is not None:
+            args += "&until_date=" + until_date.strftime(self.dateformat)
 
-		res = MobileVikings.urlopen_with_auth(self.baseurl + "call_history.xml" + args, 
-				self.username, self.password)
-		xml = ElementTree.parse(res)
-		return [{
-				"timestamp": long(calldata.find("timestamp").text),
-				"start_timestamp": datetime.strptime(calldata.find("start_timestamp").text,
-					self.dateformat),
-				"end_timestamp": datetime.strptime(calldata.find("end_timestamp").text,
-					self.dateformat),
-				"duration": calldata.find("duration").text,
-				"duration_call": calldata.find("duration_call").text,
-				"duration_connection": calldata.find("duration_connection").text,
-				"duration_human": calldata.find("duration_human").text,
-				"to": calldata.find("to").text,
-				"destination": calldata.find("destination").text,
-				"is_incoming": calldata.find("is_incoming").text.lower() == "true",
-				"is_voice": calldata.find("is_voice").text.lower() == "true",
-				"is_sms": calldata.find("is_sms").text.lower() == "true",
-				"is_mms": calldata.find("is_mms").text.lower() == "true",
-				"is_data": calldata.find("is_data").text.lower() == "true",
-				"price": float(calldata.find("price").text),
-				"balance": float(calldata.find("balance").text)
-			} for calldata in xml.findall("dict")]
+        args += "&page_size=1000"
 
-	def top_up_history(self):
-		"""Get the top up history from the logged in user"""
-		res = MobileVikings.urlopen_with_auth(self.baseurl + "top_up_history.xml", self.username, self.password)
-		xml = ElementTree.parse(res)
-		return [{
-				"on": datetime.strptime(topup.find("on").text, self.dateformat),
-				"id": topup.find("id").text,
-				"subscription_id": topup.find("subscription_id").text,
-				"amount": float(topup.find("amount").text),
-				"method": topup.find("method/clean").text,
-				"method_pretty": topup.find("method/pretty").text,
-				"status": topup.find("status/clean").text,
-				"status_pretty": topup.find("status/pretty").text
-			} for topup in xml.findall("topup")]
+        res = MobileVikings.urlopen_with_auth(self.baseurl + "call_history.xml" + args, 
+                self.username, self.password)
+        xml = ElementTree.parse(res)
+        return [{
+                "timestamp": long(calldata.find("timestamp").text),
+                "start_timestamp": datetime.strptime(calldata.find("start_timestamp").text,
+                    self.dateformat),
+                "end_timestamp": datetime.strptime(calldata.find("end_timestamp").text,
+                    self.dateformat),
+                "duration": calldata.find("duration").text,
+                "duration_call": calldata.find("duration_call").text,
+                "duration_connection": calldata.find("duration_connection").text,
+                "duration_human": calldata.find("duration_human").text,
+                "to": calldata.find("to").text,
+                "destination": calldata.find("destination").text,
+                "is_incoming": calldata.find("is_incoming").text.lower() == "true",
+                "is_voice": calldata.find("is_voice").text.lower() == "true",
+                "is_sms": calldata.find("is_sms").text.lower() == "true",
+                "is_mms": calldata.find("is_mms").text.lower() == "true",
+                "is_data": calldata.find("is_data").text.lower() == "true",
+                "price": float(calldata.find("price").text),
+                "balance": float(calldata.find("balance").text)
+            } for calldata in xml.findall("dict")]
+
+    def top_up_history(self):
+        """Get the top up history from the logged in user"""
+        res = MobileVikings.urlopen_with_auth(self.baseurl + "top_up_history.xml", self.username, self.password)
+        xml = ElementTree.parse(res)
+        return [{
+                "on": datetime.strptime(topup.find("on").text, self.dateformat),
+                "id": topup.find("id").text,
+                "subscription_id": topup.find("subscription_id").text,
+                "amount": float(topup.find("amount").text),
+                "method": topup.find("method/clean").text,
+                "method_pretty": topup.find("method/pretty").text,
+                "status": topup.find("status/clean").text,
+                "status_pretty": topup.find("status/pretty").text
+            } for topup in xml.findall("topup")]
 
 class NetworkException(Exception):
-	def __init__(self, causedby):
-		self.causedby = causedby
+    def __init__(self, causedby):
+        self.causedby = causedby
 
-	def __str__(self):
-		return "Could not connect to Mobile Vikings API: " + str(self.causedby)
-		
+    def __str__(self):
+        return "Could not connect to Mobile Vikings API: " + str(self.causedby)
+        
 class AuthenticationException(NetworkException):
-	def __str__(self):
-		return "Invalid username or password"
+    def __str__(self):
+        return "Invalid username or password"
 
 def usage():
-	print("Usage: %s <username> <password>" % sys.argv[0])
+    print("Usage: %s <username> <password>" % sys.argv[0])
 
 
 def main(argv):
-	if len(argv) != 2:
-		usage()
-		sys.exit(2)
-	username = argv[0]
-	password = argv[1]
-	
-	try:
-		mv = MobileVikings(username, password)
+    if len(argv) != 2:
+        usage()
+        sys.exit(2)
+    username = argv[0]
+    password = argv[1]
+    
+    try:
+        mv = MobileVikings(username, password)
 
-		balance = mv.sim_balance()
-		print("=== Balance ===")
-		print("Credits: %s EUR - SMS: %s - Data: %s MB - Valid until: %s\n"
-				% (balance["credits"], balance["sms"],
-			balance["data"]/(1024*1024), balance["valid_until"]))
+        balance = mv.sim_balance()
+        print("=== Balance ===")
+        print("Credits: %s EUR - SMS: %s - SMS (MV): %s - Data: %s MB - Valid until: %s\n"
+                % (balance["credits"], balance["sms"], balance["sms_mv"],
+            balance["data"]/(1024*1024), balance["valid_until"]))
 
-		twodaysago = datetime.now() - timedelta(days=2)
-		yesterday = datetime.now() - timedelta(days=1)
-		now = datetime.now()
-		call_history_yesterday = mv.call_history(twodaysago, yesterday)
-		call_history_today = mv.call_history(yesterday, now)
-		print("=== Call History ===")
-		print("#### Yesterday:")
-		for call in call_history_yesterday:
-			print(call)
-		print("#### Today:")
-		for call in call_history_today:
-			print(call)
-		print("")
+        twodaysago = datetime.now() - timedelta(days=2)
+        yesterday = datetime.now() - timedelta(days=1)
+        now = datetime.now()
+        call_history_yesterday = mv.call_history(twodaysago, yesterday)
+        call_history_today = mv.call_history(yesterday, now)
+        print("=== Call History ===")
+        print("#### Yesterday:")
+        for call in call_history_yesterday:
+            print(call)
+        print("#### Today:")
+        for call in call_history_today:
+            print(call)
+        print("")
 
-		top_up_history = mv.top_up_history()
-		print("=== Top-ups ===")
-		for topup in top_up_history:
-			print("%s - %s EUR (%s) - %s" % (topup["on"], topup["amount"],
-				topup["method_pretty"], topup["status_pretty"]))
-	except NetworkException as e:
-		print(e)
-		sys.exit(1)
+        top_up_history = mv.top_up_history()
+        print("=== Top-ups ===")
+        for topup in top_up_history:
+            print("%s - %s EUR (%s) - %s" % (topup["on"], topup["amount"],
+                topup["method_pretty"], topup["status_pretty"]))
+    except NetworkException as e:
+        print(e)
+        sys.exit(1)
 
 if __name__ == "__main__":
-	main(sys.argv[1:])
+    main(sys.argv[1:])
 
