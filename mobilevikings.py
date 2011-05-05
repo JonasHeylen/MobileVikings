@@ -34,8 +34,9 @@ from xml.etree import ElementTree
 class MobileVikings(object):
     """Mobile Vikings API for Python"""
 
-    baseurl    = "https://mobilevikings.com/api/1.0/rest/mobilevikings/"
+    baseurl    = "https://mobilevikings.com/api/2.0/basic/"
     dateformat = "%Y-%m-%dT%H:%M:%S"
+    dateformat_output = "%Y-%m-%d %H:%M:%S"
     dateformat_topup = "%Y-%m-%dT%H:%M:%S.%f"
 
     def __init__(self, username, password):
@@ -82,23 +83,21 @@ class MobileVikings(object):
         if until_date is not None:
             args += "&until_date=" + until_date.strftime(self.dateformat)
 
-        args += "&page_size=1000"
+        args += "&page_size=100"
 
-        res = MobileVikings.urlopen_with_auth(self.baseurl + "call_history.xml" + args, 
+        res = MobileVikings.urlopen_with_auth(self.baseurl + "usage.xml" + args, 
                 self.username, self.password)
         xml = ElementTree.parse(res)
         return [{
                 "timestamp": long(calldata.find("timestamp").text),
                 "start_timestamp": datetime.strptime(calldata.find("start_timestamp").text,
-                    self.dateformat),
+                    self.dateformat_output),
                 "end_timestamp": datetime.strptime(calldata.find("end_timestamp").text,
-                    self.dateformat),
-                "duration": calldata.find("duration").text,
+                    self.dateformat_output),
                 "duration_call": calldata.find("duration_call").text,
                 "duration_connection": calldata.find("duration_connection").text,
                 "duration_human": calldata.find("duration_human").text,
                 "to": calldata.find("to").text,
-                "destination": calldata.find("destination").text,
                 "is_incoming": calldata.find("is_incoming").text.lower() == "true",
                 "is_voice": calldata.find("is_voice").text.lower() == "true",
                 "is_sms": calldata.find("is_sms").text.lower() == "true",
@@ -106,7 +105,7 @@ class MobileVikings(object):
                 "is_data": calldata.find("is_data").text.lower() == "true",
                 "price": float(calldata.find("price").text),
                 "balance": float(calldata.find("balance").text)
-            } for calldata in xml.findall("dict")]
+            } for calldata in xml.findall("resource")]
 
     def top_up_history(self):
         """Get the top up history from the logged in user"""
