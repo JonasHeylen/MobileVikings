@@ -32,18 +32,21 @@ from mobilevikings import MobileVikings
 from datetime import datetime, timedelta
 
 def usage():
-    print("Usage: %s <username> <password>" % sys.argv[0])
+    print("Usage: %s <username> <password> [<page>]" % sys.argv[0])
 
 
 def main(argv):
-    if len(argv) != 2:
+    if (len(argv) < 2) or (len(argv) > 3):
         usage()
         sys.exit(2)
     username = argv[0]
     password = argv[1]
+    page = 1
+    if len(argv) == 3:
+        page = int(argv[2])
     mv = MobileVikings(username, password)
     now = datetime.now()
-    history = mv.call_history(from_date=now-timedelta(days=30), until_date=now)
+    history = mv.call_history(from_date=now-timedelta(days=30), until_date=now, page=page)
     writer = csv.writer(sys.stdout)
     writer.writerow(["Timestamp", "Number", "Incoming"])
     for sms in [x for x in history if x["is_sms"]]:
