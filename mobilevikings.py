@@ -32,7 +32,8 @@ from urllib2 import *
 from xml.etree import ElementTree
 
 class MobileVikings(object):
-    """Mobile Vikings API for Python"""
+    """Mobile Vikings API for Python
+    https://mobilevikings.com/api/2.0/doc/"""
 
     baseurl    = "https://mobilevikings.com/api/2.0/basic/"
     dateformat = "%Y-%m-%dT%H:%M:%S"
@@ -73,7 +74,7 @@ class MobileVikings(object):
                     self.dateformat_topup),
                 "is_expired": xml.find("is_expired").text.lower() == "true"}
 
-    def call_history(self, from_date=None, until_date=None):
+    def call_history(self, from_date=None, until_date=None, page_size=100, page=1):
         """Get the call history from the logged in user"""
         
         if from_date is None:
@@ -83,7 +84,8 @@ class MobileVikings(object):
         if until_date is not None:
             args += "&until_date=" + until_date.strftime(self.dateformat)
 
-        args += "&page_size=100"
+        args += "&page_size=" + str(page_size)
+        args += "&page=" + str(page)
 
         res = MobileVikings.urlopen_with_auth(self.baseurl + "usage.xml" + args, 
                 self.username, self.password)
