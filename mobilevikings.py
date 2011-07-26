@@ -90,24 +90,31 @@ class MobileVikings(object):
         res = MobileVikings.urlopen_with_auth(self.baseurl + "usage.xml" + args, 
                 self.username, self.password)
         xml = ElementTree.parse(res)
-        return [{
-                "timestamp": long(calldata.find("timestamp").text),
-                "start_timestamp": datetime.strptime(calldata.find("start_timestamp").text,
-                    self.dateformat_output),
-                "end_timestamp": datetime.strptime(calldata.find("end_timestamp").text,
-                    self.dateformat_output),
-                "duration_call": calldata.find("duration_call").text,
-                "duration_connection": calldata.find("duration_connection").text,
-                "duration_human": calldata.find("duration_human").text,
-                "to": calldata.find("to").text,
-                "is_incoming": calldata.find("is_incoming").text.lower() == "true",
-                "is_voice": calldata.find("is_voice").text.lower() == "true",
-                "is_sms": calldata.find("is_sms").text.lower() == "true",
-                "is_mms": calldata.find("is_mms").text.lower() == "true",
-                "is_data": calldata.find("is_data").text.lower() == "true",
-                "price": float(calldata.find("price").text),
-                "balance": float(calldata.find("balance").text)
-            } for calldata in xml.findall("resource")]
+        result = []
+        for calldata in xml.findall("resource"):
+            try:
+                result.append({
+                    "from": calldata.find("from").text,
+                    "start_timestamp": datetime.strptime(calldata.find("start_timestamp").text,
+                        self.dateformat_output),
+                    "end_timestamp": datetime.strptime(calldata.find("end_timestamp").text,
+                        self.dateformat_output),
+                    "duration_call": calldata.find("duration_call").text,
+                    "duration_connection": calldata.find("duration_connection").text,
+                    "duration_human": calldata.find("duration_human").text,
+                    "to": calldata.find("to").text,
+                    "is_incoming": calldata.find("is_incoming").text.lower() == "true",
+                    "is_voice": calldata.find("is_voice").text.lower() == "true",
+                    "is_sms": calldata.find("is_sms").text.lower() == "true",
+                    "is_mms": calldata.find("is_mms").text.lower() == "true",
+                    "is_data": calldata.find("is_data").text.lower() == "true",
+                    "price": float(calldata.find("price").text),
+                    "balance": float(calldata.find("balance").text)
+                })
+            except Exception as e:
+                print("Failed to parse entry: " + ElementTree.tostring(calldata))
+                print(e)
+        return result
 
     def top_up_history(self):
         """Get the top up history from the logged in user"""
