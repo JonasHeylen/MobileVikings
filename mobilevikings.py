@@ -38,7 +38,7 @@ class MobileVikings(object):
     baseurl    = "https://mobilevikings.com/api/2.0/basic/"
     dateformat = "%Y-%m-%dT%H:%M:%S"
     dateformat_output = "%Y-%m-%d %H:%M:%S"
-    dateformat_topup = "%Y-%m-%dT%H:%M:%S.%f"
+    dateformat_topup = "%Y-%m-%d %H:%M:%S"
 
     def __init__(self, username, password):
         """Initialize the Mobile Vikings API with a username and password"""
